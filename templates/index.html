@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Intrusion Detection Form</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@3.3.7/dist/css/bootstrap.min.css">
+    <style>
+        .result-container {
+            border: 1px solid #ddd;
+            padding: 20px;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        .result-header {
+            font-weight: bold;
+            color: #007bff;
+        }
+        .result-item {
+            margin-bottom: 10px;
+        }
+        .result-key {
+            font-weight: bold;
+            color: #333;
+        }
+        .result-value {
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    <header class="bg-primary text-white py-4">
+        <div class="container">
+            <h1 class="text-center">Intrusion Detection System</h1>
+        </div>
+    </header>
+
+    <main class="container my-5">
+        <h2 class="mb-4">Intrusion Detection Form</h2>
+        <form id="predictionForm" class="bg-light p-4 rounded shadow-sm">
+            <div class="mb-3">
+                <label for="sourcePort" class="form-label">Source Port:</label>
+                <input type="number" id="sourcePort" name="sourcePort" class="form-control" required>
+            </div>
+            <div class="mb-3">
+                <label for="destinationPort" class="form-label">Destination Port:</label>
+                <input type="number" id="destinationPort" name="destinationPort" class="form-control" required>
+            </div>
+            <div class="mb-3">
+                <label for="protocol" class="form-label">Protocol:</label>
+                <input type="text" id="protocol" name="protocol" class="form-control" required>
+            </div>
+            <div class="mb-3">
+                <label for="packetLength" class="form-label">Packet Length:</label>
+                <input type="number" step="any" id="packetLength" name="packetLength" class="form-control" required>
+            </div>
+            <div class="mb-3">
+                <label for="ttl" class="form-label">TTL:</label>
+                <input type="number" id="ttl" name="ttl" class="form-control" required>
+            </div>
+            <div class="mb-3">
+                <label for="flags" class="form-label">Flags:</label>
+                <input type="text" id="flags" name="flags" class="form-control" required>
+            </div>
+            <div class="mb-3">
+                <label for="flowDuration" class="form-label">Flow Duration:</label>
+                <input type="number" id="flowDuration" name="flowDuration" class="form-control" required>
+            </div>
+            <div class="mb-3">
+                <label for="packetCount" class="form-label">Packet Count:</label>
+                <input type="number" id="packetCount" name="packetCount" class="form-control" required>
+            </div>
+            <div class="mb-3">
+                <label for="averagePacketSize" class="form-label">Average Packet Size:</label>
+                <input type="number" step="any" id="averagePacketSize" name="averagePacketSize" class="form-control" required>
+            </div>
+            <div class="mb-3">
+                <label for="payloadSize" class="form-label">Payload Size:</label>
+                <input type="number" id="payloadSize" name="payloadSize" class="form-control" required>
+            </div>
+            <div class="mb-3">
+                <label for="windowSize" class="form-label">Window Size:</label>
+                <input type="number" id="windowSize" name="windowSize" class="form-control" required>
+            </div>
+            <div class="mb-3">
+                <label for="urgentPointer" class="form-label">Urgent Pointer:</label>
+                <input type="number" id="urgentPointer" name="urgentPointer" class="form-control" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Submit</button>
+        </form>
+
+        <h2 class="mt-5">Prediction Results:</h2>
+        <div id="results" class="result-container"></div>
+    </main>
+
+    <footer class="bg-dark text-white py-4">
+        <div class="container text-center">
+            <p class="mb-0">© 2024 Intrusion Detection System. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        document.getElementById('predictionForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+
+            const formData = new FormData(event.target);
+            const data = {
+                features: [
+                    parseFloat(document.getElementById('sourcePort').value),
+                    parseFloat(document.getElementById('destinationPort').value),
+                    document.getElementById('protocol').value, // String for categorical encoding
+                    parseFloat(document.getElementById('packetLength').value),
+                    parseFloat(document.getElementById('ttl').value),
+                    document.getElementById('flags').value,   // String for categorical encoding
+                    parseFloat(document.getElementById('flowDuration').value),
+                    parseFloat(document.getElementById('packetCount').value),
+                    parseFloat(document.getElementById('averagePacketSize').value),
+                    parseFloat(document.getElementById('payloadSize').value),
+                    parseFloat(document.getElementById('windowSize').value),
+                    parseFloat(document.getElementById('urgentPointer').value)
+                ]
+            };
+
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+                displayResults(result);
+            } catch (error) {
+                document.getElementById('results').textContent = 'Error: ' + error.message;
+            }
+        });
+
+        function displayResults(results) {
+            const resultsContainer = document.getElementById('results');
+            resultsContainer.innerHTML = ''; // Clear previous results
+            const header = document.createElement('div');
+            header.classList.add('result-header');
+            header.textContent = 'Model Predictions:';
+            resultsContainer.appendChild(header);
+
+            for (const [model, prediction] of Object.entries(results)) {
+                const resultItem = document.createElement('div');
+                resultItem.classList.add('result-item');
+                
+                const key = document.createElement('span');
+                key.classList.add('result-key');
+                key.textContent = `${model}: `;
+
+                const value = document.createElement('span');
+                value.classList.add('result-value');
+                value.textContent = prediction === 1 ? 'Intrusion Detected' : 'No Intrusion Detected';
+
+                resultItem.appendChild(key);
+                resultItem.appendChild(value);
+                resultsContainer.appendChild(resultItem);
+            }
+        }
+    </script>
+</body>
+</html>
