@@ -14,7 +14,7 @@ An Intrusion Detection System (IDS) built using machine learning models to class
 
 ## Project Structure
 
-```
+
 intrusion-detection-system/
 │
 ├── models/
