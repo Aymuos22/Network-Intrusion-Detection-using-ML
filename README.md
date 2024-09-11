@@ -1,5 +1,3 @@
-Here's a sample `README.md` file for your Intrusion Detection System project, tailored for GitHub. This README includes sections that cover the project overview, setup instructions, usage guide, and more, making it easy for others to understand and use your project.
-
 ### `README.md`
 
 ```markdown
@@ -98,16 +96,5 @@ intrusion-detection-system/
 ## Contributing
 
 Contributions are welcome! Please fork this repository and submit a pull request with your changes.
-
-## License
-
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for more details.
-
-## Contact
-
-For any questions or issues, please open an issue on this repository or contact [your email/contact info].
-
-```
-
 
 ![image](https://github.com/user-attachments/assets/bfa6deb0-8a08-4b9d-806a-f484f6c26536)
