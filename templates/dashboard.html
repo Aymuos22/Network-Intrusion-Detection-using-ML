@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Intrusion Detection Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        .container {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+        }
+        .chart-container {
+            width: 45%;
+        }
+        .summary, .last-prediction {
+            margin: 20px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            background: #f9f9f9;
+        }
+        .summary h2, .last-prediction h2 {
+            color: #333;
+        }
+        table {
+            width: 100%;
+            margin-top: 10px;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 10px;
+            border: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .intrusion-counts, .no-intrusion-counts {
+            text-align: left;
+            font-size: 0.9em;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Intrusion Detection Dashboard</h1>
+    
+    <!-- Section for latest prediction summary -->
+    <div class="summary">
+        <h2>Latest Prediction</h2>
+        <table id="lastPredictionTable">
+            <thead>
+                <tr>
+                    <th>Model</th>
+                    <th>Prediction</th>
+                    <th>Intrusion Status</th>
+                </tr>
+            </thead>
+            <tbody id="lastPredictionDetails">
+                <!-- Populated by JavaScript -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Section for displaying pie charts -->
+    <div class="container">
+        <div class="chart-container">
+            <h3>Intrusion Detected Counts by Model</h3>
+            <canvas id="intrusionPieChart" width="300" height="300"></canvas>
+            <div id="intrusionCounts" class="intrusion-counts"></div>
+        </div>
+        <div class="chart-container">
+            <h3>No Intrusion Counts by Model</h3>
+            <canvas id="noIntrusionPieChart" width="300" height="300"></canvas>
+            <div id="noIntrusionCounts" class="no-intrusion-counts"></div>
+        </div>
+    </div>
+
+    <script>
+        // Fetch logs and last prediction data
+        async function fetchLogs() {
+            try {
+                const response = await fetch('/logs');
+                return await response.json();
+            } catch (error) {
+                console.error('Error fetching logs:', error);
+            }
+        }
+
+        async function fetchLastPrediction() {
+            try {
+                const response = await fetch('/last_prediction');
+                return await response.json();
+            } catch (error) {
+                console.error('Error fetching last prediction:', error);
+            }
+        }
+
+        // Process log data for pie charts
+        function processLogs(logs) {
+            const models = ["Logistic Regression", "Neural Network", "Naive Bayes", "Decision Tree", "Random Forest"];
+            const intrusionCounts = models.map(name => logs.filter(log => log.models[name]?.prediction === 1).length);
+            const noIntrusionCounts = models.map(name => logs.filter(log => log.models[name]?.prediction === 0).length);
+            return { models, intrusionCounts, noIntrusionCounts };
+        }
+
+        // Update charts with processed data
+        async function updateIntrusionCharts() {
+            const logs = await fetchLogs();
+            const processedData = processLogs(logs);
+
+            intrusionPieChart.data.labels = processedData.models;
+            intrusionPieChart.data.datasets[0].data = processedData.intrusionCounts;
+            intrusionPieChart.update();
+
+            noIntrusionPieChart.data.labels = processedData.models;
+            noIntrusionPieChart.data.datasets[0].data = processedData.noIntrusionCounts;
+            noIntrusionPieChart.update();
+
+            // Update intrusion counts
+            document.getElementById('intrusionCounts').innerHTML = processedData.models.map(
+                (model, i) => `<p>${model}: ${processedData.intrusionCounts[i]} times</p>`
+            ).join('');
+            document.getElementById('noIntrusionCounts').innerHTML = processedData.models.map(
+                (model, i) => `<p>${model}: ${processedData.noIntrusionCounts[i]} times</p>`
+            ).join('');
+        }
+
+        // Update last prediction table
+        async function updateLastPrediction() {
+            const lastPrediction = await fetchLastPrediction();
+            const predictionTable = document.getElementById('lastPredictionDetails');
+            predictionTable.innerHTML = '';
+
+            if (lastPrediction && lastPrediction.results) {
+                for (const model in lastPrediction.results) {
+                    const row = `<tr>
+                        <td>${model}</td>
+                        <td>${lastPrediction.results[model]}</td>
+                        <td>${lastPrediction.results[model] === 1 ? 'Intrusion Detected' : 'No Intrusion'}</td>
+                    </tr>`;
+                    predictionTable.insertAdjacentHTML('beforeend', row);
+                }
+            }
+        }
+
+        // Simulate a random intrusion log and adjust counts
+        function simulateRandomIntrusion() {
+            const models = ["Logistic Regression", "Neural Network", "Naive Bayes", "Decision Tree", "Random Forest"];
+            const randomModelIndex = Math.floor(Math.random() * models.length);
+            const modelName = models[randomModelIndex];
+
+            // Increase the intrusion count and decrease the no intrusion count for the chosen model
+            const intrusionData = intrusionPieChart.data.datasets[0].data;
+            const noIntrusionData = noIntrusionPieChart.data.datasets[0].data;
+
+            intrusionData[randomModelIndex] += 1;
+            if (noIntrusionData[randomModelIndex] > 0) {
+                noIntrusionData[randomModelIndex] -= 1;
+            }
+
+            intrusionPieChart.update();
+            noIntrusionPieChart.update();
+
+            // Update counts in the HTML
+            updateIntrusionCharts();
+        }
+
+        // Create and update pie charts
+        const ctxIntrusion = document.getElementById('intrusionPieChart').getContext('2d');
+        const intrusionPieChart = new Chart(ctxIntrusion, {
+            type: 'pie',
+            data: {
+                labels: ["Logistic Regression", "Neural Network", "Naive Bayes", "Decision Tree", "Random Forest"],
+                datasets: [{
+                    label: 'Intrusion Detected',
+                    backgroundColor: ['rgba(255, 99, 132, 0.2)', 'rgba(54, 162, 235, 0.2)', 'rgba(255, 206, 86, 0.2)', 'rgba(75, 192, 192, 0.2)', 'rgba(153, 102, 255, 0.2)'],
+                    borderColor: ['rgba(255, 99, 132, 1)', 'rgba(54, 162, 235, 1)', 'rgba(255, 206, 86, 1)', 'rgba(75, 192, 192, 1)', 'rgba(153, 102, 255, 1)'],
+                    borderWidth: 1,
+                    data: [0, 0, 0, 0, 0]
+                }]
+            }
+        });
+
+        const ctxNoIntrusion = document.getElementById('noIntrusionPieChart').getContext('2d');
+        const noIntrusionPieChart = new Chart(ctxNoIntrusion, {
+            type: 'pie',
+            data: {
+                labels: ["Logistic Regression", "Neural Network", "Naive Bayes", "Decision Tree", "Random Forest"],
+                datasets: [{
+                    label: 'No Intrusion',
+                    backgroundColor: ['rgba(255, 99, 132, 0.2)', 'rgba(54, 162, 235, 0.2)', 'rgba(255, 206, 86, 0.2)', 'rgba(75, 192, 192, 0.2)', 'rgba(153, 102, 255, 0.2)'],
+                    borderColor: ['rgba(255, 99, 132, 1)', 'rgba(54, 162, 235, 1)', 'rgba(255, 206, 86, 1)', 'rgba(75, 192, 192, 1)', 'rgba(153, 102, 255, 1)'],
+                    borderWidth: 1,
+                    data: [30, 30, 30, 30, 30]  // Initial count for no intrusion
+                }]
+            }
+        });
+
+        // Periodically update charts and last prediction
+        setInterval(() => {
+            updateIntrusionCharts();
+            updateLastPrediction();
+        }, 5000);
+
+        // Simulate a random intrusion every 5 seconds
+        setInterval(simulateRandomIntrusion, 5000);
+    </script>
+</body>
+</html>
